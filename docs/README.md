@@ -37,10 +37,10 @@ title: Improving Trajectory Guided Control Prediction for Autonomous Driving
   - [Links](#links)
 
 ---
-<div>
-      <img class="mx-auto d-block img-thumbnail" src="./images/e17072.jpg" alt="Sample Image" width="128" />
-      <p class="caption text-center">Dinura Dissanayake</p>
-</div>
+
+<img class="mx-auto d-block img-thumbnail float-left" src="./images/e17072.jpg" alt="Sample Image" width="128" />
+<p class="caption text-center float-left">Dinura Dissanayake</p>
+
 
 <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
