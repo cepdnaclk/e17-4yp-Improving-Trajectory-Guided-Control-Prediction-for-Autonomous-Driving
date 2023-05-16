@@ -38,7 +38,7 @@ title: Improving Trajectory Guided Control Prediction for Autonomous Driving
 
 ---
 
-<img class="mx-auto d-block" src="./images/e17072.jpg" alt="Sample Image" width="128" />
+<img class="mx-auto d-block img-thumbnail" src="./images/e17072.jpg" alt="Sample Image" width="128" />
 
 <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 
