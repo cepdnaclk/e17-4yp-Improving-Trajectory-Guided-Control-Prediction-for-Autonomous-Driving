@@ -23,20 +23,42 @@ title: Improving Trajectory Guided Control Prediction for Autonomous Driving
 
 #### Table of content
 
-1. [Abstract](#abstract)
-2. [Related works](#related-works)
-3. [Methodology](#methodology)
-4. [Experiment Setup and Implementation](#experiment-setup-and-implementation)
-5. [Results and Analysis](#results-and-analysis)
-6. [Conclusion](#conclusion)
-7. [Publications](#publications)
-8. [Links](#links)
+- [Improving Trajectory Guided Control Prediction for Autonomous Driving](#improving-trajectory-guided-control-prediction-for-autonomous-driving)
+      - [Team](#team)
+      - [Supervisors](#supervisors)
+      - [Table of content](#table-of-content)
+  - [Abstract](#abstract)
+  - [Related works](#related-works)
+  - [Methodology](#methodology)
+  - [Experiment Setup and Implementation](#experiment-setup-and-implementation)
+  - [Results and Analysis](#results-and-analysis)
+  - [Conclusion](#conclusion)
+  - [Publications](#publications)
+  - [Links](#links)
 
 ---
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
-DELETE THIS SAMPLE before publishing to GitHub Pages !!!
-This is a sample image, to show how to add images to your page. To learn more options, please refer [this](https://projects.ce.pdn.ac.lk/docs/faq/how-to-add-an-image/)
-![Sample Image](./images/sample.png)
+<div class="figure container">
+    <div class="row">
+        <div class="col-3">
+            <img class="mx-auto d-block img-thumbnail" src="./images/e17072.jpg" alt="Sample Image" width="128" />
+            <p class="caption text-center">Dinura Dissanayake</p>
+        </div>
+        <div class="col-3">
+            <img class="mx-auto d-block img-thumbnail" src="./images/e17380.jpg" alt="Sample Image" width="128" />
+            <p class="caption text-center">Shamal Weerasooriya</p>
+        </div>
+        <div class="col-3">
+            <img class="mx-auto d-block img-thumbnail" src="./images/roshan-ragel.jpg" alt="Sample Image" width="128" />
+            <p class="caption text-center">Prof. Roshan G. Ragel</p>
+        </div>
+        <div class="col-3">
+            <img class="mx-auto d-block img-thumbnail" src="./images/geesara-prathap.jpeg" alt="Sample Image" width="128" />
+            <p class="caption text-center">Research Eng. Geesara Prathap Kulathunga</p>
+        </div>
+    </div>
+</div>
 
 
 ## Abstract
