@@ -4,23 +4,22 @@ permalink: index.html
 
 # Please update this with your repository name and title
 repository-name: eYY-4yp-project-template
-title:
+title: Improving Trajectory Guided Control Prediction for Autonomous Driving
 ---
 
 [comment]: # "This is the standard layout for the project, but you can clean this and use your own template"
 
-# Project Title
+# Improving Trajectory Guided Control Prediction for Autonomous Driving
 
 #### Team
 
-- eNumber, Name, [email](mailto:name@email.com)
-- eNumber, Name, [email](mailto:name@email.com)
-- eNumber, Name, [email](mailto:name@email.com)
+- E/17/072, Dinura Dissanayake, [e17072@eng.pdn.ac.lk](mailto:e17072@eng.pdn.ac.lk)
+- E/17/380, Shamal Weerasooriya, [e17380@eng.pdn.ac.lk](mailto:e17380@eng.pdn.ac.lk)
 
 #### Supervisors
 
-- Name, [email](mailto:name@eng.pdn.ac.lk)
-- Name, [email](mailto:name@eng.pdn.ac.lk)
+- Prof. Roshan G. Ragel, [roshanr@eng.pdn.ac.lk](mailto:roshanr@eng.pdn.ac.lk)
+- Research Eng. Geesara Prathap Kulathunga, [ggeesara@gmail.com](mailto:ggeesara@gmail.com)
 
 #### Table of content
 
