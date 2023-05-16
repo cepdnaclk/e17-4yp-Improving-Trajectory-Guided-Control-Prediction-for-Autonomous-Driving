@@ -37,11 +37,6 @@ title: Improving Trajectory Guided Control Prediction for Autonomous Driving
   - [Links](#links)
 
 ---
-<div class="container">
-      <img class="mx-auto d-block img-thumbnail" src="./images/e17072.jpg" alt="Sample Image" width="128" />
-      <p class="caption text-center">Dinura Dissanayake</p>
-</div>
-
 
 ## Abstract
 
