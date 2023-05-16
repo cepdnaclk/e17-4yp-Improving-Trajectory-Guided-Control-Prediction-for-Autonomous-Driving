@@ -39,22 +39,14 @@ title: Improving Trajectory Guided Control Prediction for Autonomous Driving
 ---
 
 <div class="row">
-      <div class="col-3">
       <img class="mx-auto d-block img-thumbnail" src="./images/e17072.jpg" alt="Sample Image" width="128" />
       <p class="caption text-center">Dinura Dissanayake</p>
-      </div>
-      <div class="col-3">
       <img class="mx-auto d-block img-thumbnail" src="./images/e17380.jpg" alt="Sample Image" width="128" />
       <p class="caption text-center">Shamal Weerasooriya</p>
-      </div>
-      <div class="col-3">
       <img class="mx-auto d-block img-thumbnail" src="./images/roshan-ragel.jpg" alt="Sample Image" width="128" />
       <p class="caption text-center">Prof. Roshan G. Ragel</p>
-      </div>
-      <div class="col-3">
       <img class="mx-auto d-block img-thumbnail" src="./images/geesara-prathap.jpeg" alt="Sample Image" width="128" />
       <p class="caption text-center">Research Eng. Geesara Prathap Kulathunga</p>
-      </div>
 </div>
 
 <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
