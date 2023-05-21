@@ -218,6 +218,7 @@ class TCP(nn.Module):
 		outputs['future_mu'] = future_mu
 		outputs['future_sigma'] = future_sigma
 		return outputs
+		#return outputs['pred_speed'], outputs['pred_value_traj'], outputs['pred_features_traj'], outputs['pred_wp'], outputs['pred_value_ctrl'], outputs['pred_features_ctrl'], outputs['mu_branches'], outputs['sigma_branches'], outputs['future_feature'], outputs['future_mu'], outputs['future_sigma']
 
 	def process_action(self, pred, command, speed, target_point):
 		action = self._get_action_beta(pred['mu_branches'].view(1,2), pred['sigma_branches'].view(1,2))
