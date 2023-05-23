@@ -1,6 +1,6 @@
-from TCP.model import TCP
-from TCP.config import GlobalConfig
-from TCP.data import CARLA_Data
+from ..TCP.model import TCP
+from ..TCP.config import GlobalConfig
+from ..TCP.data import CARLA_Data
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
