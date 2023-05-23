@@ -1,4 +1,4 @@
-This file, tensorboard_view.py, contains the code to obtain logs for TensorBoard in order to view the TCP (Transmission Control Protocol) graph. The latest logs can be found in the runs/TCP_experiment folder.
+This file, tensorboard_view.py, contains the code to obtain logs for TensorBoard in order to view the TCP graph. The latest logs can be found in the runs/TCP_experiment folder.
 
 The following image showcases the TCP graph obtained from TensorBoard:
 
