@@ -23,7 +23,7 @@ class GlobalConfig:
 	pred_len = 4 # future waypoints predicted
 
 	# data root
-	root_dir_all = "/storage/scratch/e17-4yp-autonomous-driving/TCPDataset/tcp_carla_data"
+	root_dir_all = "/storage/scratch/e17-4yp-autonomous-driving/g04/TCPDataset/tcp_carla_data"
 
 	train_towns = ['town01', 'town03', 'town04',  'town06', ]
 	val_towns = ['town02', 'town05', 'town07', 'town10']
