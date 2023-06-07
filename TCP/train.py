@@ -1,19 +1,3 @@
-"""
-   Copyright [2022] [OpenDriveLab]
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-"""
-
 import argparse
 import os
 from collections import OrderedDict
@@ -23,11 +7,13 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch.distributions import Beta
+import torchvision
 
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 from TCP.model import TCP
 from TCP.data import CARLA_Data
@@ -66,6 +52,10 @@ class TCP_planner(pl.LightningModule):
 		speed = batch['speed'].to(dtype=torch.float32).view(-1,1) / 12.
 		target_point = batch['target_point'].to(dtype=torch.float32)
 		command = batch['target_command']
+
+		if batch_idx % 100 == 0:
+			grid = torchvision.utils.make_grid(front_img)
+			self.logger.experiment.add_image("front_image", grid, self.global_step)
 		
 		state = torch.cat([speed, target_point, command], 1)
 		value = batch['value'].view(-1,1)
@@ -168,6 +158,8 @@ class TCP_planner(pl.LightningModule):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
+	logger = TensorBoardLogger("tb_logs", name="TCP_model_v0")
+
 
 	parser.add_argument('--id', type=str, default='TCP', help='Unique experiment identifier.')
 	parser.add_argument('--epochs', type=int, default=60, help='Number of train epochs.')
@@ -176,6 +168,7 @@ if __name__ == "__main__":
 	parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
 	parser.add_argument('--logdir', type=str, default='log', help='Directory to log data to.')
 	parser.add_argument('--gpus', type=int, default=1, help='number of gpus')
+	parser.add_argument('--loadfromcheckpoint', type=int, default=0, help='Load from n th checkpoint')
 
 	args = parser.parse_args()
 	args.logdir = os.path.join(args.logdir, args.id)
@@ -210,12 +203,30 @@ if __name__ == "__main__":
 											callbacks=[checkpoint_callback,
 														],
 											check_val_every_n_epoch = args.val_every,
-											max_epochs = args.epochs
+											max_epochs = args.epochs,
+											logger=logger
 											)
+	if args.loadfromcheckpoint>0:
 
-	trainer.fit(TCP_model, dataloader_train, dataloader_val)
-
-
+		trainer = pl.Trainer(
+			resume_from_checkpoint=args.logdir+"/epoch={checkpoint}-last.ckpt".format(checkpoint=args.loadfromcheckpoint),
+			default_root_dir=args.logdir,
+			gpus = args.gpus,
+			accelerator='ddp',
+			sync_batchnorm=True,
+			plugins=DDPPlugin(find_unused_parameters=False),
+			profiler='simple',
+			benchmark=True,
+			log_every_n_steps=1,
+			flush_logs_every_n_steps=5,
+			callbacks=[checkpoint_callback,
+						],
+			check_val_every_n_epoch = args.val_every,
+			max_epochs = args.epochs,
+			logger=logger)
+		trainer.fit(TCP_model, dataloader_train, dataloader_val)
+	else:
+		trainer.fit(TCP_model, dataloader_train, dataloader_val)
 
 
 		
