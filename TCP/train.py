@@ -92,6 +92,7 @@ class TCP_planner(pl.LightningModule):
 		self.log('train_feature_loss', feature_loss.item())
 		self.log('train_future_feature_loss', future_feature_loss.item())
 		self.log('train_future_action_loss', future_action_loss.item())
+		self.log('train_total_loss', loss.item())
 		return loss
 
 	def configure_optimizers(self):
