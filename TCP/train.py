@@ -8,12 +8,15 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 from torch.distributions import Beta
 import torchvision
+import random
+import wandb
 
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins import DDPPlugin
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger
 
 from TCP.model import TCP
 from TCP.data import CARLA_Data
@@ -27,11 +30,15 @@ class TCP_planner(pl.LightningModule):
 		self.config = config
 		self.model = TCP(config)
 		self._load_weight()
+		self.save_hyperparameters()
 
 	def _load_weight(self):
-		rl_state_dict = torch.load(self.config.rl_ckpt, map_location='cpu')['policy_state_dict']
+		# They are loading the state dict from roach .pth file
+		rl_state_dict = torch.load(self.config.rl_ckpt, map_location='cpu')['policy_state_dict'] 
+		# loading value_head weights and biases from roach state dict to the trajectory branch
 		self._load_state_dict(self.model.value_branch_traj, rl_state_dict, 'value_head')
-		self._load_state_dict(self.model.value_branch_ctrl, rl_state_dict, 'value_head')
+		# same as above for control look ckpt notebook for more info
+		self._load_state_dict(self.model.value_branch_ctrl, rl_state_dict, 'value_head') 
 		self._load_state_dict(self.model.dist_mu, rl_state_dict, 'dist_mu')
 		self._load_state_dict(self.model.dist_sigma, rl_state_dict, 'dist_sigma')
 
@@ -52,10 +59,6 @@ class TCP_planner(pl.LightningModule):
 		speed = batch['speed'].to(dtype=torch.float32).view(-1,1) / 12.
 		target_point = batch['target_point'].to(dtype=torch.float32)
 		command = batch['target_command']
-
-		if batch_idx % 100 == 0:
-			grid = torchvision.utils.make_grid(front_img)
-			self.logger.experiment.add_image("front_image", grid, self.global_step)
 		
 		state = torch.cat([speed, target_point, command], 1)
 		value = batch['value'].view(-1,1)
@@ -64,6 +67,13 @@ class TCP_planner(pl.LightningModule):
 		gt_waypoints = batch['waypoints']
 
 		pred = self.model(front_img, state, target_point)
+
+		if(batch_idx==0):
+			self.ref_front_img = front_img[0]
+			self.ref_front_img_all = front_img
+			self.ref_state = state[0] 
+			self.ref_target_point = target_point[0] 
+			print("ref_img_shape: ", self.ref_front_img.shape)
 
 		dist_sup = Beta(batch['action_mu'], batch['action_sigma'])
 		dist_pred = Beta(pred['mu_branches'], pred['sigma_branches'])
@@ -93,7 +103,21 @@ class TCP_planner(pl.LightningModule):
 		self.log('train_future_feature_loss', future_feature_loss.item())
 		self.log('train_future_action_loss', future_action_loss.item())
 		self.log('train_total_loss', loss.item())
-		return loss
+		randint = random.randint(0, 19)
+		self.log('speed', batch['speed'].to(dtype=torch.float32).view(-1,1)[randint])
+		output = {
+            "loss": loss,
+            'train_action_loss':  action_loss,
+			'train_speed_loss':  speed_loss,
+			'train_value_loss': value_loss,
+			'train_feature_loss': feature_loss,
+			'train_wp_loss_loss': wp_loss,
+			'train_future_feature_loss': future_feature_loss,
+			'train_future_action_loss': future_action_loss,
+			'train_loss': loss
+        }
+  
+		return output
 
 	def configure_optimizers(self):
 		optimizer = optim.Adam(self.parameters(), lr=self.lr, weight_decay=1e-7)
@@ -155,12 +179,161 @@ class TCP_planner(pl.LightningModule):
 		self.log('val_future_feature_loss', future_feature_loss.item(), sync_dist=True)
 		self.log('val_future_action_loss', future_action_loss.item(), sync_dist=True)
 		self.log('val_loss', val_loss.item(), sync_dist=True)
+		return {'val_action_loss':  action_loss,
+          		'val_speed_loss':  speed_loss,
+				'val_value_loss': value_loss,
+				'val_feature_loss': feature_loss,
+				'val_wp_loss_loss': wp_loss,
+				'val_future_feature_loss': future_feature_loss,
+				'val_future_action_loss': future_action_loss,
+				'val_loss': val_loss}
+
+	def training_epoch_end(self, outputs):
+
+		if(self.current_epoch == 1):
+			# rand_img = torch.rand(1, 1, 28, 28) # TODO add the graph
+			print(self.ref_front_img.shape)
+			print(self.ref_front_img_all.shape)
+			print(self.ref_front_img.unsqueeze(0).shape)
+			# modelff = self.model(self.ref_front_img, self.ref_state, self.ref_target_point)
+			# self.logger.experiment.add_graph(self.model, self.ref_front_img.unsqueeze(0), self.ref_state.unsqueeze(0), self.ref_target_point.unsqueeze(0))
+			# logger._log_graph = True
+   
+		self.visActivations(self.ref_front_img, self.ref_state, self.ref_target_point)
+        
+		train_action_loss = torch.stack([x['train_action_loss'] for x in outputs]).mean()
+		train_speed_loss =  torch.stack([x['train_speed_loss'] for x in outputs]).mean()
+		train_value_loss = torch.stack([x['train_value_loss'] for x in outputs]).mean()
+		train_feature_loss = torch.stack([x['train_feature_loss'] for x in outputs]).mean()
+		train_wp_loss_loss = torch.stack([x['train_wp_loss_loss'] for x in outputs]).mean()
+		train_future_feature_loss = torch.stack([x['train_future_feature_loss'] for x in outputs]).mean()
+		train_future_action_loss = torch.stack([x['train_future_action_loss'] for x in outputs]).mean()
+		train_loss = torch.stack([x['train_loss'] for x in outputs]).mean()
+					
+		self.logger[0].experiment.add_scalar("Loss/train_action_loss", train_action_loss, self.current_epoch)
+		self.logger[0].experiment.add_scalar("Loss/train_speed_loss", train_speed_loss, self.current_epoch)
+		self.logger[0].experiment.add_scalar("Loss/train_value_loss", train_value_loss, self.current_epoch)
+		self.logger[0].experiment.add_scalar("Loss/train_feature_loss", train_feature_loss, self.current_epoch)
+		self.logger[0].experiment.add_scalar("Loss/train_wp_loss_loss", train_wp_loss_loss, self.current_epoch)
+		self.logger[0].experiment.add_scalar("Loss/train_future_feature_loss", train_future_feature_loss, self.current_epoch)
+		self.logger[0].experiment.add_scalar("Loss/train_future_action_loss", train_future_action_loss, self.current_epoch)
+		self.logger[0].experiment.add_scalar("Loss/train_loss", train_loss, self.current_epoch)
+  
+		self.histogram_adder()
+		# return {'loss': train_loss}
+	
+
+	
+	def histogram_adder(self, ):
+		for name, params in self.named_parameters():
+			self.logger[0].experiment.add_histogram(name, params, self.current_epoch) 
+		return 
+
+	def validation_epoch_end(self, outputs):
+			val_action_loss = torch.stack([x['val_action_loss'] for x in outputs]).mean()
+			val_speed_loss =  torch.stack([x['val_speed_loss'] for x in outputs]).mean()
+			val_value_loss = torch.stack([x['val_value_loss'] for x in outputs]).mean()
+			val_feature_loss = torch.stack([x['val_feature_loss'] for x in outputs]).mean()
+			val_wp_loss_loss = torch.stack([x['val_wp_loss_loss'] for x in outputs]).mean()
+			val_future_feature_loss = torch.stack([x['val_future_feature_loss'] for x in outputs]).mean()
+			val_future_action_loss = torch.stack([x['val_future_action_loss'] for x in outputs]).mean()
+			val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+						
+			self.logger[0].experiment.add_scalar("Loss/val_action_loss", val_action_loss, self.current_epoch)
+			self.logger[0].experiment.add_scalar("Loss/val_speed_loss", val_speed_loss, self.current_epoch)
+			self.logger[0].experiment.add_scalar("Loss/val_value_loss", val_value_loss, self.current_epoch)
+			self.logger[0].experiment.add_scalar("Loss/val_feature_loss", val_feature_loss, self.current_epoch)
+			self.logger[0].experiment.add_scalar("Loss/val_wp_loss_loss", val_wp_loss_loss, self.current_epoch)
+			self.logger[0].experiment.add_scalar("Loss/val_future_feature_loss", val_future_feature_loss, self.current_epoch)
+			self.logger[0].experiment.add_scalar("Loss/val_future_action_loss", val_future_action_loss, self.current_epoch)
+			self.logger[0].experiment.add_scalar("Loss/val_loss", val_loss, self.current_epoch)
+			
+			return {'val_loss': val_loss}
+
+	def visActivations(self, img, state, target_point):
+		
+		# img = torch.Tensor.cpu(img).numpy().T
+		# img = img.swapaxes(0, 1)
+  		# print(img.shape)
+		# image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+		# pixels = np.array(image)
+		# plt.imshow(img)
+		# plt.show()
+  
+		self.logger[0].experiment.add_image("input_front_img", torch.Tensor.cpu(img), self.current_epoch, dataformats="CHW")
+  
+		img = img.unsqueeze(0)
+		state = state.unsqueeze(0)
+		target_point = target_point.unsqueeze(0)
+  
+		# print("vis in ---", img.shape, state.shape, target_point.shape)
+		feature_emb, cnn_feature = self.model.perception(img)
+		test_output = {}
+		test_output['pred_speed'] = self.model.speed_branch(feature_emb)
+		measurement_feature = self.model.measurements(state)
+		
+		j_traj = self.model.join_traj(torch.cat([feature_emb, measurement_feature], 1))
+		test_output['pred_value_traj'] = self.model.value_branch_traj(j_traj)
+		test_output['pred_features_traj'] = j_traj
+		z = j_traj
+		output_wp = list()
+		traj_hidden_state = list()
+
+		# initial input variable to GRU
+		x = torch.zeros(size=(z.shape[0], 2), dtype=z.dtype).type_as(z)
+
+		# autoregressive generation of output waypoints
+		for _ in range(self.model.config.pred_len):
+			x_in = torch.cat([x, target_point], dim=1)
+			z = self.model.decoder_traj(x_in, z)
+			traj_hidden_state.append(z)
+			dx = self.model.output_traj(z)
+			x = dx + x
+			output_wp.append(x)
+
+		pred_wp = torch.stack(output_wp, dim=1)
+		test_output['pred_wp'] = pred_wp
+
+		traj_hidden_state = torch.stack(traj_hidden_state, dim=1)
+		init_att = self.model.init_att(measurement_feature).view(-1, 1, 8, 29)
+		feature_emb = torch.sum(cnn_feature*init_att, dim=(2, 3))
+		j_ctrl = self.model.join_ctrl(torch.cat([feature_emb, measurement_feature], 1))
+		test_output['pred_value_ctrl'] = self.model.value_branch_ctrl(j_ctrl)
+		test_output['pred_features_ctrl'] = j_ctrl
+		policy = self.model.policy_head(j_ctrl)
+		test_output['mu_branches'] = self.model.dist_mu(policy)
+		test_output['sigma_branches'] = self.model.dist_sigma(policy)
+
+		x = j_ctrl
+		mu = test_output['mu_branches']
+		sigma = test_output['sigma_branches']
+		future_feature, future_mu, future_sigma = [], [], []
+
+		# initial hidden variable to GRU
+		h = torch.zeros(size=(x.shape[0], 256), dtype=x.dtype).type_as(x)
+
+		for l in range(self.config.pred_len):
+			x_in = torch.cat([x, mu, sigma], dim=1)
+			h = self.model.decoder_ctrl(x_in, h)
+			wp_att = self.model.wp_att(torch.cat([h, traj_hidden_state[:, _]], 1)).view(-1, 1, 8, 29)
+			attention_map = torch.Tensor.cpu(wp_att.squeeze()).detach()
+			self.logger[0].experiment.add_image("attention_map_" + str(l), attention_map, self.current_epoch, dataformats="HW")
+			new_feature_emb = torch.sum(cnn_feature*wp_att, dim=(2, 3))
+			merged_feature = self.model.merge(torch.cat([h, new_feature_emb], 1))
+			dx = self.model.output_ctrl(merged_feature)
+			x = dx + x
+			policy = self.model.policy_head(x)
+			mu = self.model.dist_mu(policy)
+			sigma = self.model.dist_sigma(policy)
+			future_feature.append(x)
+			future_mu.append(mu)
+			future_sigma.append(sigma)
 
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	logger = TensorBoardLogger("tb_logs", name="TCP_model_v0")
-
+	logger = TensorBoardLogger("tb_logs", name="testing_for_activations")
+	wandb_logger = WandbLogger()
 
 	parser.add_argument('--id', type=str, default='TCP', help='Unique experiment identifier.')
 	parser.add_argument('--epochs', type=int, default=60, help='Number of train epochs.')
@@ -205,10 +378,9 @@ if __name__ == "__main__":
 														],
 											check_val_every_n_epoch = args.val_every,
 											max_epochs = args.epochs,
-											logger=logger
+											logger=[logger, wandb_logger]
 											)
 	if args.loadfromcheckpoint>0:
-
 		trainer = pl.Trainer(
 			resume_from_checkpoint=args.logdir+"/epoch={checkpoint}-last.ckpt".format(checkpoint=args.loadfromcheckpoint),
 			default_root_dir=args.logdir,
@@ -224,10 +396,12 @@ if __name__ == "__main__":
 						],
 			check_val_every_n_epoch = args.val_every,
 			max_epochs = args.epochs,
-			logger=logger)
+			logger=[logger, wandb_logger])
 		trainer.fit(TCP_model, dataloader_train, dataloader_val)
 	else:
 		trainer.fit(TCP_model, dataloader_train, dataloader_val)
+
+
 
 
 		
@@ -235,3 +409,8 @@ if __name__ == "__main__":
 
 
 
+
+
+# checkpoint = torch.load('/storage/scratch/e17-4yp-autonomous-driving/g04/TCPModels/best_model.ckpt', map_location='cpu')
+# /storage/scratch/e17-4yp-autonomous-driving/g04/TCPModels/TCP/epoch=11-last.ckpt
+# print(checkpoint.keys())
