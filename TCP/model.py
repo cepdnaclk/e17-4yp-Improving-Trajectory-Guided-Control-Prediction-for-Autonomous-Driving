@@ -93,7 +93,7 @@ class TCP(nn.Module):
 		self.value_branch_traj = nn.Sequential(
 					nn.Linear(256, 256),
 					nn.ReLU(inplace=True),
-					nn.Linear(256, 256),
+					nn.Linear(256, 256), # change
 					nn.Dropout2d(p=0.5),
 					nn.ReLU(inplace=True),
 					nn.Linear(256, 1),
